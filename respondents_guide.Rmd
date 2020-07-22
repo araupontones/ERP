@@ -1,12 +1,35 @@
 ---
-title: "Untitled"
+title: "ERP's online response guide"
 author: "ERP"
-output: html_document
+output: 
+  html_document:
+        toc: true
+        toc_float: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## ERP guide
+# Introduction to the guide
+
+Write a general introduction about this form
+
+
+# Donors
+
+Describe what a donor is
+
+
+# ERP specific activities
+
+Add table with specific activities
+
+# Proportion of each listed actitivites
+
+Add an example: **should we include a table with activities, outcome, and programme level??**
+
+# ERP relevant activities
+
+# Refugee hosting subcounties
 
