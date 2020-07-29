@@ -22,7 +22,7 @@ server <- function(input, output, session) {
       
       ) %>%
       formatStyle(
-        colnames(report_donors_implementors)[8:11],
+        colnames(report_donors_implementors)[11:15],
         color = styleInterval(c(50, 100), c('black', 'black', 'white')),
         backgroundColor = styleInterval(c(99,100), c('#FFF9AE', 'white','#FB8D8F'))
       )  

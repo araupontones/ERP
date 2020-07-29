@@ -78,6 +78,16 @@ implementors_second = my_datas$Roster_implementors_second
 ## Number of unanswered questions
 projects$no_answered <- rowSums(projects == "")
 
+##remove pr from dates
+dates = which(str_detect(names(projects),"date"))
+names(projects)[dates] <- str_remove(names(projects[dates]), "pr_")
+names(projects)
+
+
+## remove levels from national and district
+levels = which(str_detect(names(projects),"level"))
+names(projects)[levels] <- str_remove(names(projects)[levels], "_level")
+
 
 
 report = projects %>%
@@ -91,12 +101,25 @@ report = projects %>%
          sum_programme = sum(c_across(starts_with("C_")), na.rm = T),
          sum_activities = sum(c_across(starts_with("D_")), na.rm = T),
   ## Get budget and currency
-        budget = paste(prettyNum(pr_budget, big.mark = ","), pr_budget_currency )
+        budget = paste(prettyNum(pr_budget, big.mark = ","), pr_budget_currency ),
+  ## clean subcounties
+        subcounties_focus = str_remove(subcounties_focus, " is in*.+"),
+  ## clean districts which
+      
+        districts_which = str_remove_all(districts_which, "\\[|\\]"),
+  districts_which = if_else(districts_which == "", 0, str_count(districts_which,",")+1)
          
          ) %>%
   
-  rename(A.Prop_ERP= A_erp)%>%
-  select(Organisation,Project, starts_with("intro"), budget,A.Prop_ERP,starts_with("sum_"), no_answered, link, ID)
+  rename(A.Prop_ERP= A_erp,
+         ERP_relevant = ERP_relevant_prop,
+         subcounties = subcounties_focus)%>%
+  
+  
+  select(Organisation,Project, starts_with("intro"),starts_with("date"), 
+         budget,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
+         subcounties, districts_number,districts_which,
+         no_answered, link, ID)
 
 
 names(donors) <- c("Project", "donor_detail",  "Donor", "ID_Project", "donor_amount", "ID" ,"donor_currency")
@@ -115,7 +138,10 @@ Donors = donors %>%
 
 report_donors = report %>%
   left_join(Donors, by=c("ID" = "ID_Project")) %>%
-  select(Organisation,Project, starts_with("intro"), Donors,budget,A.Prop_ERP,starts_with("sum_"), no_answered, link, ID)
+  select(Organisation,Project, Donors, starts_with("intro"),starts_with("date"), 
+         budget,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
+         subcounties, districts_number,districts_which,
+         no_answered, link, ID)
 
 
 names(implementors) <- c("implementor_spent","Project" ,"Implementor","ID_Project",
@@ -134,10 +160,13 @@ Implementors_ = implementors %>%
 
 report_donors_implementors = report_donors %>%
   left_join(Implementors_, by=c("ID" = "ID_Project")) %>%
-  select(Organisation,Project, starts_with("intro"), Donors, Implementors, budget,A.Prop_ERP,starts_with("sum_"), no_answered, link)
+  select(Organisation,Project, Donors, Implementors,starts_with("intro"),starts_with("date"), 
+         budget,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
+         subcounties, districts_number,districts_which,
+         no_answered, link)
 
 
-str(report_donors_implementors)
+
 
               
               

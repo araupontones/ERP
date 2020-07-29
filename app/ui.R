@@ -2,16 +2,18 @@
 
 library(shiny)
 library(DT)
+library(shinycssloaders)
 
 
-navbarPage("EPR's Quality Assurance",
+navbarPage("ERP's Quality Assurance",
            tabPanel("Responses",
                     fluidRow(
                       column(12,
-                             DTOutput("table")
+                             withSpinner(DTOutput("table"), type = 5)
                              )
                       ),
            tabPanel("Summary"),
            tabPanel("Table")
 )
 )
+
