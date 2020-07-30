@@ -1,35 +1,216 @@
 ---
-title: "ERP's online response guide"
-author: "ERP"
+title: "ERP Financial Tracking online questionnaire"
+
 output: 
   html_document:
         toc: true
         toc_float: true
+        toc_depth: 2
+        css: style.css
+        
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introduction to the guide
 
-Write a general introduction about this form
+## What is the ERP?
 
-
-# Donors
-
-Describe what a donor is
+The Education Response Plan for refugees and host communities in Uganda (ERP) is a 3.5-year plan (January 2018 to June 2021) designed to ensure the children, adolescents and youth (aged 3 to 24) from the refugee and host communities access sustained quality learning opportunities. The ERP is attempting to reach 567,500 leaners per year. The total cost is estimated to be 389 million USD. 
 
 
-# ERP specific activities
+The overall goal of the plan is to *Improve learning outcomes for refugee and host community children and adolescents*.
 
-Add table with specific activities
 
-# Proportion of each listed actitivites
+Foreseen outcomes of the Plan are:
 
-Add an example: **should we include a table with activities, outcome, and programme level??**
 
-# ERP relevant activities
+1. improved equitable access to inclusive, relevant learning opportunities;
 
-# Refugee hosting subcounties
+2. improved delivery of quality education services and training; and
+
+3. strengthened systems for effective delivery.
+
+The ERP Steering Committee has responsibility for overseeing the ERP’s implementation. The Steering Committee is supported by a Secretariat.
+
+
+The full ERP can be found online [here](https://www.educationcannotwait.org/download/education-response-plan-for-refugees-and-host-communities-in-uganda/) 
+
+
+
+<br>
+
+## Introduction to the questionnaire
+
+When the ERP was developed, the costs of its activities were estimated at $389 million. The ERP does not have its own budget or source of funding, rather it is made up of a number of activities implemented and funded by various partners – some of which were in motion even before the ERP was developed and would exist even in the absence of the ERP. Implementation and funding takes place by government, EIESWG partners and EDPs (among others). The Steering Committee needs to have a record of how much has been spent against the estimated costs, in order to understand the success in implementing the ERP so far, and where there are gaps. Given that so many actors are involved in funding and implementing activities which contribute to the ERP, this information needs to be collected in a bottom-up process from the various actors.
+This questionnaire was developed by the Secretariat for the Steering Committee, in order to collect information on spending by EDPs and EiE members (non-state actors). Government spending is being collected separately from MoES and the Ministry of Finance, Planning and Economic Development.
+
+The questionnaire should be filled in for any project/programme which is relevant to the ERP. This means that 
+
+*	it includes activities which were included in the ERP (see ERP specific activities below), 
+
+*	it has involved spending at some point since January 2018 (thought it might now be finished)
+
+*	it is implemented in at least some of the refugee hosting subcounties, within the refugee hosting districts (see Refugee hosting districts and subcounties below).
+
+
+**The project does not need to have specifically targeted refugees;** the ERP also caters for ‘host communities’ (Ugandan nationals) who are living in the same subcounties as the refugee settlements.
+
+
+Respondents can fill in a new entry for each separate project if that is easier.
+
+
+
+
+<br>
+
+## ERP specific activities
+
+The ERP includes a large number of activities which together would contribute to improving learning outcomes for refugee and host community children. The full list of activities is included in Annex B of the ERP, and again in Annex D Table 18.
+
+The activities are each given classifications against three categories: the outcome they contribute to, the programme level, and the activity type.
+
+Spending by a project should be considered to count towards the ERP if the activity was included in the ERP costing. We have provided a checklist of which activities these are under the ‘Outcomes’ category below. In addition, we have provided further definitions of the programme level and activity type.
+
+
+
+
+<br>
+
+## Outcomes
+
+Spending on activities should be counted as being ‘ERP specific’ if the activities are included in the following tables with a tick.
+
+<br>
+
+### Outcome 1: Activities for improving access
+
+<br>
+
+<img src="outcomes.png"
+     alt="Markdown Monster icon"
+     style="display: block; 
+            margin-left: auto;
+            margin-right: auto;
+              width: 90%;" />
+
+<br>
+
+### Outcome 2: Activities for improving quality
+
+<br>
+
+<img src="outcomes2.png"
+     alt="Markdown Monster icon"
+     style="display: block; 
+            margin-left: auto;
+            margin-right: auto;
+              width: 90%;" />
+              
+<br> 
+
+### Outcome 3: Activities for strengthening systems
+
+<img src="outcomes3.png"
+     alt="Markdown Monster icon"
+     style="display: block; 
+            margin-left: auto;
+            margin-right: auto;
+              width: 90%;" />
+
+
+
+
+<br>
+
+## Programme levels
+Activities in the ERP are categorised in the following programme levels:
+
+*	**ECD** (or pre-primary education) – for 3-5 year olds
+
+*	**Primary** – formal education for 6-12 year olds
+
+*	**Secondary** – formal education for 13-18 year olds 
+
+*	**Accelerated education** - opportunities for children who are unable to enrol in the formal school  system
+
+*	**Skills and vocational training** – for children and youth up to 24 years old, including non-formal skills training. This would include life skills, support to technical and vocational education and training.
+
+*	**System strengthening** – these are activities to strengthen the system but not targeted specifically at one of the other programme levels. For example, this would include support to MoES or district governments for managing the refugee response, general district capacity building, developing and disseminating policy/guidelines, M&E of the ERP. In contrast, supporting primary school inspection by district governments would come under the primary level.
+
+
+
+
+<br>
+
+## Activity type
+Activities in the ERP are categorised in the following types:
+
+*	**Infrastructure** – construction, rehabilitation and maintenance of school buildings.
+
+*	**Materials** – supply of teachers’ guides, curricula, textbooks, materials for games and sports.
+
+*	**Teacher Salary** – salaries for teachers, head teachers, teaching assistants and instructors in primary, secondary, AEP and vocational centres.
+
+*	**Teacher Training** – training to teachers on children with disabilities, pedagogy (large classes, local materials), socio-emotional support, gender-based violence, continuous professional development; training and accreditation for refugee teachers.
+
+*	**Training to the Children** – scholarships, training for children in sanitation and hygiene, children’s clubs, delivery of bridging programmes for refugees in formal schooling.
+
+*	**Strengthening School/ Parents/ Community structures** - establishment of Home Grown School Feeding, community sensitisation and support to PTAs/SMCs.
+
+*	**System Strengthening (District)** – school inspection and supervision, increasing capacity of district officers.
+
+*	**System Strengthening (National)** – support to national government with developing policy and guidelines around refugee education, support MoES in managing, coordinating and monitoring the refugee response.
+
+*	**Piloting/ Innovations/ Material Development** – pilots (double shift, AEP, use of ICT) review/update AEP guides and materials, develop bridging programme. 
+
+
+
+<br>
+
+## ERP relevant activities
+
+Many activities may be relevant for improving access and quality of learning for 3-24 year olds, but were not included in the ERP’s costed activities. Broadly, these would be activities in the three tables above under Outcomes but where there isn’t a ‘tick’. The most prominent activities that are relevant for the ERP’s objective but not included in the ERP specifically are:
+
+*	Infrastructure for ECD/pre-primary
+
+*	Salaries for ECD care givers
+
+*	Materials (e.g. games and early reading books) for ECD centres
+
+
+If projects have provided these activities, they would not count as ‘ERP specific’, however they would count as ‘ECD relevant’.
+
+
+<br>
+
+
+## Refugee hosting districts and subcounties
+
+In Uganda, there 13refugee-hosting districts, and within this a number of refugee-hosting sub-counties, as set out below. (Not that some district boundaries have changed since the ERP was written). Kampala is considered a hosting district but does not have any specific hosting sub-counties.
+
+
+The relevant districts and subcounties are as follows:
+
+
+
+<img src="subcounties.png"
+     alt="Markdown Monster icon"
+     style="display: block; 
+            margin-left: auto;
+            margin-right: auto;
+              width: 90%;" />
+
+
+
+
+
+
+  
+  
+</table>
+
+</body>
+</html>
 

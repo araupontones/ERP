@@ -1,0 +1,26 @@
+
+
+table, th, td {
+  border: 1px solid black;
+  width: 50%;
+   margin-left: auto;
+  margin-right: auto;
+             }
+             
+th {
+  
+  background: #26A74D;
+  color: white;
+}
+
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    z-index: 2;
+    color: #fff;
+    background-color: #26A74D;
+    border-color: #26A74D;
+}
+
+h2 {
+    color: #26A74D;
+    font-size: 30px;
+}
