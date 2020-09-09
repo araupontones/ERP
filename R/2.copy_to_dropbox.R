@@ -9,9 +9,13 @@ dirs_to_copy = c("analysis", "downloads", "clean_data")
 #copy files 
 copy_files = map(dirs_to_copy, function(x){
   
-  file.copy(x, dir_db_analysis, recursive=TRUE, overwrite = T)
+  from_dir = paste0(x,"/.")
+  to_dir = file.path(dir_db_analysis, x)
+  
+  file.copy(from_dir, to_dir, recursive=TRUE, overwrite = T)
   
 })
+
 
 
 
