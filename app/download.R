@@ -117,7 +117,7 @@ report = projects %>%
   
   
   select(Organisation,Project, starts_with("intro"),starts_with("date"), 
-         budget,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
+         budget,pr_budget_currency,pr_total_spent, pr_spending_currency,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
          subcounties, districts_number,districts_which,
          no_answered, link, ID)
 
@@ -139,7 +139,7 @@ Donors = donors %>%
 report_donors = report %>%
   left_join(Donors, by=c("ID" = "ID_Project")) %>%
   select(Organisation,Project, Donors, starts_with("intro"),starts_with("date"), 
-         budget,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
+         budget,pr_budget_currency,pr_total_spent,pr_spending_currency,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
          subcounties, districts_number,districts_which,
          no_answered, link, ID)
 
@@ -161,7 +161,7 @@ Implementors_ = implementors %>%
 report_donors_implementors = report_donors %>%
   left_join(Implementors_, by=c("ID" = "ID_Project")) %>%
   select(Organisation,Project, Donors, Implementors,starts_with("intro"),starts_with("date"), 
-         budget,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
+         budget,pr_budget_currency,pr_total_spent,pr_spending_currency,A.Prop_ERP,starts_with("sum_"), ERP_relevant, prop_national, prop_district,
          subcounties, districts_number,districts_which,
          no_answered, link)
 
