@@ -43,19 +43,20 @@
 *Budget in USD 
 	gen budget_USD = .
 	replace budget_USD =  pr_budget if pr_budget_currency == "USD"
-	replace budget_USD =  pr_budget * `ex_gbp' if pr_budget_currency == "GBP"
-	replace budget_USD =  pr_budget * `ex_euro' if pr_budget_currency == "EURO"
+	replace budget_USD =  pr_budget / `ex_gbp' if pr_budget_currency == "GBP"
+	replace budget_USD =  pr_budget / `ex_euro' if pr_budget_currency == "EURO"
 	replace budget_USD =  pr_budget / `ex_ugx' if pr_budget_currency == "Ugandan shilling"
 
 *Amoung spent in USD
 	gen spent_USD = .
 	replace spent_USD =  pr_total_spent if pr_spending_currency == "USD"
-	replace spent_USD =  pr_total_spent * `ex_gbp' if pr_spending_currency == "GBP"
-	replace spent_USD =  pr_total_spent * `ex_euro' if pr_spending_currency == "EURO"
+	replace spent_USD =  pr_total_spent / `ex_gbp' if pr_spending_currency == "GBP"
+	replace spent_USD =  pr_total_spent / `ex_euro' if pr_spending_currency == "EURO"
 	replace spent_USD =  pr_total_spent / `ex_ugx' if pr_spending_currency == "Ugandan shilling"
 	
 	label var spent_USD "Total budget for the duration of the project into USD"
 	
+	format budget_USD spent_USD %22.1f
 *Execution rate
 	gen execution_rate = round(spent_USD / budget_USD,.01)
 	label var execution_rate "A sense check that they’ve given spend in the correct currency. We won’t use this for any final presentation but some internal QA analysis"
@@ -78,9 +79,10 @@
 	
 *Amount spent monthly
 	gen monthly_spend_all  = spent_USD / Months
+	format monthly_spend_all %22.1f
 	label var monthly_spend_all "Average spend in every month of the duration of the project"
-
-
+	
+	
 	
 
 					*-SPEND FOR EACH FINANCIAL YEAR
@@ -88,9 +90,11 @@
 	
 	
 *Spend for each financial year
-
+	
+	local seq = 0 
 	//calculate number of active months in financial year
-	foreach y in "0" "1718" "1819" "1920" {
+	foreach y in "0" "1819" "1920" {
+	
 	
 		
 		//dates if year 0 (*check this with Nicola)
@@ -118,39 +122,44 @@
 	
 
 	// Calculate active months in the financial year
-	gen active_`y' = .
+	gen active_`seq' = .
 	
 	//count months between project start and end of the financial year (only if project was alive during FY)
-	replace active_`y' =  round((`end_FY' - date_start)/(365/12),.1) if date_end >= `start_FY' & date_start <= `end_FY' 
+	replace active_`seq' =  round((`end_FY' - date_start)/(365/12),.1) if date_end >= `start_FY' & date_start <= `end_FY' 
 	
 	//adjust for those projects that were alive but ended before the end of FY
-	replace active_`y' = round((date_end - `start_FY')/(365/12),.1) if date_end  <=  `end_FY' & active_`y' !=. 
+	replace active_`seq' = round((date_end - `start_FY')/(365/12),.1) if date_end  <=  `end_FY' & active_`seq' !=. 
 	
 	//adjust for those projects that were alive but ended after end of FY
-	replace active_`y' = 12 if active_`y' >12 & active_`y'!=.
+	replace active_`seq' = 12 if active_`seq' >12 & active_`seq'!=.
 	
 	//replace to 0 if missing (this is to be able to sum accross columns)
 	*replace active_`y' = 0 if active_`y' ==.
 	
-	label var active_`y' "Number of months that the project was active in FY `y'"
+	label var active_`seq' "Number of months that the project was active in FY `seq'"
 	
 *Calculate amount spent in financial year
 
-	gen spent_`y'_all = monthly_spend_all * active_`y'
-	label var spent_`y'_all "Total spend in financial year `y'"
+	gen spent_`seq'_all = monthly_spend_all * active_`seq'
+	label var spent_`seq'_all "Total spend in financial year `seq'"
+	
+	
+	local seq = `seq' + 1
 		
 	}
+	
+	format spent_* %22.1f
 	
 	
 
 	
 *Amount spent in years 0-2 of the ERP
 
-	egen spent_3ys_all = rowtotal(spent_1718_all spent_1819_all spent_1920_all)
+	egen spent_3ys_all = rowtotal(spent_0_all spent_1_all spent_2_all)
 	label var spent_3ys_all "Total spending in years 0-2 of ERP"
-	
+	format spent_* %22.1f
 
-	
+
 
 					*-SPEND ON REFUGEE HOST COMMUNITIES
 *------------------------------------------------------------------------------
@@ -417,21 +426,35 @@
 
 					*-DETAILS OF ERP SPECIFIC GEOGRAPHICAL LEVEL
 *------------------------------------------------------------------------------
+
+*Total spend over years 0-2 on RHC and ERP specific activities, at the national level
+	gen Spend_RHC_3Ys_ERPspec_Nat = Spend_RHC_3Ys_ERPspec * Spendprop_Nat_all
+	label var Spend_RHC_3Ys_ERPspec_Nat "Total spend over years 0-2 on RHC and ERP specific activities, at the national level"
+
+*Total spend over years 0-2 on RHC and ERP specific activities, at the district level
+	gen Spend_RHC_3Ys_ERPspec_Dist = Spend_RHC_3Ys_ERPspec * Spendprop_Distlevel_all
+	label var Spend_RHC_3Ys_ERPspec_Dist "Total spend over years 0-2 on RHC and ERP specific activities, at the district level"
+
+
+* 			FORMAT VARIABLES
+*-------------------------------------------------------------------------------
+	rename date_until date_up_todate
 	
-	
+	format Spendprop* %3.2f
+	format Spend_RHC_* %22.1f
+	format *_prop %3.2f
 	
 *Variables created : ----------------------------------------------------------
 	order Project pr_budget pr_budget_currency pr_total_spent pr_spending_currency ///
-	budget_USD spent_USD execution_rate date_start date_until date_end Months monthly_spend_all ///
-	active_0 spent_0_all active_1718 spent_1718_all active_1819 spent_1819_all ///
-	active_1920 spent_1920_all spent_3ys_all ///
+	budget_USD spent_USD execution_rate date_start date_up_todate date_end Months monthly_spend_all ///
+	active_* spent_* spent_3ys_all ///
 	Districts_RHC districts_number perc_subcounties Spendprop_Distlevel_all ///
 	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp Spend_RHC_3Ys_ERPspec ///
 	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes Spend_RHC_3Ys_ERPspec_* ///
-	Programme_* sum_programme Activity_* sum_activity 
+	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_*
 	
 *-------------------------------------------------------------------------------
-	
+
 	
 *** EXPORT DATA
 *-------------------------------------------------------------------------------
