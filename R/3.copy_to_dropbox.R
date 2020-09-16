@@ -3,7 +3,7 @@
 source("R/set_up.R")
 
 #directories to copy into the dropbox folder of the programme
-dirs_to_copy = c("analysis", "downloads", "clean_data")
+dirs_to_copy = c("analysis", "downloads", "clean_data", "reference_data")
 
 
 #copy files 
