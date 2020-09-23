@@ -13,7 +13,58 @@
 	
 	*Directory where data from zoho is downloaded to:
 	global dir_downloads = "$dir_project/downloads"
+	global dir_reference  = "$dir_project/reference_data"
 	global dir_clean =  "$dir_project/clean_data"
+	
+	
+	
+** Read reference data of donors and implementors
+
+	import excel "$dir_reference/list_donors_categories.xlsx", sheet("Sheet1") firstrow clear
+	
+	keep Donor Category
+	rename Category donor_category
+
+	*save file to merge it with the roster of donors
+	tempfile ref_donors
+	save `ref_donors', replace
+	
+	import excel "$dir_downloads/Roster_donors2.xls", sheet("Sheet1") firstrow clear
+	
+	*merge with reference data of donors
+	merge  m:1 Donor using `ref_donors', assert(3) nogen
+	
+	keep ID Donor donor_*
+	bys ID: gen seq = _n
+	order ID seq
+	
+	** reshape to have only one row by project (so we can merge with the project's data)
+	reshape wide Donor donor_*, i(ID) j(seq)
+	
+	
+	ds donor_category*
+	
+	*Describe which type of funding the project is receivingS
+	gen Category = ""
+	foreach var in `r(varlist)' {
+	
+		
+		di "`var'"
+		replace Category = Category + `var' if Category == ""
+		replace Category = Category + ", " + `var' if `var' !="" & Category !="" & !strpos(Category, `var')
+	}
+	
+	
+	**Keep only donor_category and create summary
+	keep ID donor_category*
+	gen donor_summary = donor_category1
+	replace donor_summary = "Combination" if donor_category2 !=""
+
+	
+	
+	tempfile clean_donors
+	save `clean_donors', replace
+	
 	
 	
 	
@@ -36,7 +87,131 @@
 	
 	import excel "$dir_downloads/Project_spending.xls", sheet("Sheet1") firstrow clear
 	
+	
+	*merge with data from donors
+	merge 1:m ID using `clean_donors', assert(1 3) nogen
+	
+	
 
+	
+** CLEAN OUTCOMES, PROGRAMMES, AND ACTIVITIES 
+**------------------------------------------------------------------------------
+
+** Proportion spent by outcome
+	
+	//order variables to follow the outcome order of the programme
+	order B_learningOpportunities B_QltyEducation B_Systems B_other	
+	ds B_*	
+	foreach var in `r(varlist)' {
+		
+		// create name of the new varable with prefix Outcome_
+		local newvar =  "Outcome_"+ subinstr("`var'", "B_","",.)
+		
+		//convert original variabe from text to number
+		destring `var', gen(`newvar')
+		drop `var'
+		
+		//divide new variable to 100
+		replace `newvar' = round(`newvar'/100, .01)
+		format `newvar' %3.2f
+		label var `newvar' "Proportion of spending in `newvar'"
+		
+	}
+
+	
+	//Check that the outcomes add to 100
+	ds Outcome_*
+	egen sum_outcomes_raw = rowtotal(`r(varlist)')
+	format sum_outcome* %3.2f
+	label var sum_outcomes_raw "QA to check that the sum of the outcomes is 100"
+	
+	
+*** Clean outcome_other (assuming that the missing information was spent in other)
+	
+	replace  Outcome_other = Outcome_other + 1 - sum_outcomes_raw if (1 - sum_outcomes_raw)> 0 
+	replace Outcome_other = 1 - sum_outcomes_raw if Outcome_other==. & (1 - sum_outcomes_raw)> 0 
+	
+	
+
+	
+** Proportion spent by programme
+
+
+*Clean variables of programme level spending
+	
+	//order variables to follow the programme level order of the guide
+	
+	
+	order C_ECD C_Primary C_secondary C_AcceleratedEducation C_Skills C_Systems C_other
+	ds C_*	
+	foreach var in `r(varlist)' {
+		
+		// create name of the new varable with prefix Outcome_
+		local newvar =  "Programme_"+ subinstr("`var'", "C_","",.)
+		
+		//convert original variabe from text to number
+		destring `var', gen(`newvar')
+		drop `var'
+		
+		//divide new variable to 100
+		replace `newvar' = round(`newvar'/100, .01)
+		format `newvar' %3.2f
+		label var `newvar' "Proportion of spending in `newvar'"
+		
+	}
+
+	
+	
+	//Check that the outcomes add to 100
+	ds Programme_*
+	egen sum_programme_raw = rowtotal(`r(varlist)')
+	format sum_programme_raw %3.2f
+	label var sum_programme_raw "QA to check that the sum of the programmes is 100"
+	
+	replace  Programme_other = Programme_other + 1 - sum_programme_raw if (1 - sum_programme_raw)> 0 
+	replace Programme_other = 1 - sum_outcomes_raw if Programme_other==. & (1 - sum_programme_raw)> 0 
+	
+
+*Clean variables of Activity level spending
+	
+	//order variables to follow the programme level order of the guide
+	
+	
+	
+	order D_Infrastructure D_Materials D_Salary D_training D_Training_Children D_community D_Strengthening_District D_Strengthening_National D_piloting D_other
+	ds D_*
+		
+	foreach var in `r(varlist)' {
+		
+		// create name of the new varable with prefix Outcome_
+		local newvar =  "Activity_"+ subinstr("`var'", "D_","",.)
+		
+		//convert original variabe from text to number
+		destring `var', gen(`newvar')
+		drop `var'
+		
+		//divide new variable to 100
+		replace `newvar' = round(`newvar'/100, .00)
+		format `newvar' %3.2f
+		label var `newvar' "Proportion of spending in `newvar'"
+		
+	}
+
+	
+	
+	
+	//Check that the outcomes add to 100
+	ds Activity_*
+	egen sum_activity_raw = rowtotal(`r(varlist)')
+	format sum_activity_raw %3.2f
+	label var sum_activity_raw "QA to check that the sum of the Activities is 100"
+	
+	replace  Activity_other = Activity_other + 1 - sum_activity_raw if (1 - sum_activity_raw)> 0 
+	replace Activity_other = 1 - sum_activity_raw if Activity_other==. & (1 - sum_activity_raw)> 0 
+	
+		
+	
+	
 ** Create indicators
 * ----------------------------------------------------------------------------
 	
@@ -180,13 +355,29 @@
 	gen Districts_RHC = length(districts_which) - length(subinstr(districts_which, ",", "", .)) + 1
 	label var Districts_RHC "Number of ERP districts that the project works in"
 	
+	
+	//Porportio spent at the district level 
+	
+	
+	
+	*destring prop_national_level, gen(Prop_district_school_level)
+	destring prop_district_level, gen(Prop_district_school_level)
+	drop prop_district_level	
+	
+	replace Prop_district_school_level = Prop_district_school_level/100
+	label var Prop_district_school_level "proportion spend at the district/school level"
+	format Prop_district_school_level %3.2f
 
 	
-	gen Spendprop_Distlevel_all = (Districts_RHC/districts_number) * perc_subcounties
+	
+	gen Spendprop_Distlevel_all = (Districts_RHC/districts_number) * perc_subcounties * Prop_district_school_level
+	
 	replace Spendprop_Distlevel_all = 0 if Spendprop_Distlevel_all==.
 	label var Spendprop_Distlevel_all "proportion of all spending on refugees/host communities at the district level"
-
 	
+	format Spendprop_Distlevel_all %3.2f
+	
+
 
 	
 *Proportion of all spending on refugees/host communities in total (national and district level)
@@ -195,7 +386,6 @@
 	destring prop_national_level, gen(Spendprop_Nat_all)
 	drop prop_national_level
 	replace Spendprop_Nat_all = Spendprop_Nat_all/100
-	*replace Spendprop_Nat_all = 0 if Spendprop_Nat_all==.
 	label var Spendprop_Nat_all "Proportion spend at the national level"
 	
 	
@@ -236,35 +426,6 @@
 					*-DETAILS OF ERP SPECIFIC SPENDING BY OUTCOME AREA
 *------------------------------------------------------------------------------
 
-*Clean variables of ERP specific spending	
-	
-	//order variables to follow the outcome order of the programme
-	order B_learningOpportunities B_QltyEducation B_Systems B_other	
-	ds B_*	
-	foreach var in `r(varlist)' {
-		
-		// create name of the new varable with prefix Outcome_
-		local newvar =  "Outcome_"+ subinstr("`var'", "B_","",.)
-		
-		//convert original variabe from text to number
-		destring `var', gen(`newvar')
-		drop `var'
-		
-		//divide new variable to 100
-		replace `newvar' = round(`newvar'/100, .01)
-		format `newvar' %3.2f
-		label var `newvar' "Proportion of spending in `newvar'"
-		
-	}
-
-	
-	//Check that the outcomes add to 100
-	ds Outcome_*
-	egen sum_outcomes = rowtotal(`r(varlist)')
-	format sum_outcomes %3.2f
-	label var sum_outcomes "QA to check that the sum of the outcomes is 100"
-	
-
 
 * the total spending in years 0-2 that is on RHC and specific to the ERP, on Outcomes
 	
@@ -300,39 +461,7 @@
 					*-DETAILS OF ERP SPECIFIC SPENDING BY PROGRAMME LEVEL
 *------------------------------------------------------------------------------
 	
-*Clean variables of programme level spending
-	
-	//order variables to follow the programme level order of the guide
-	
-	
-	order C_ECD C_Primary C_secondary C_AcceleratedEducation C_Skills C_Systems C_other
-	ds C_*	
-	foreach var in `r(varlist)' {
-		
-		// create name of the new varable with prefix Outcome_
-		local newvar =  "Programme_"+ subinstr("`var'", "C_","",.)
-		
-		//convert original variabe from text to number
-		destring `var', gen(`newvar')
-		drop `var'
-		
-		//divide new variable to 100
-		replace `newvar' = round(`newvar'/100, .01)
-		format `newvar' %3.2f
-		label var `newvar' "Proportion of spending in `newvar'"
-		
-	}
 
-	
-	
-	//Check that the outcomes add to 100
-	ds Programme_*
-	egen sum_programme = rowtotal(`r(varlist)')
-	format sum_programme %3.2f
-	label var sum_programme "QA to check that the sum of the programmes is 100"
-	
-	
-	
 * the total spending in years 0-2 that is on RHC and specific to the ERP, on Programme levels
 	
 	//list all outcome variables
@@ -362,57 +491,49 @@
 					*-DETAILS OF ERP SPECIFIC SPENDING BY ACTIVITY TYPE
 *------------------------------------------------------------------------------
 	
-*Clean variables of programme level spending
-	
-	//order variables to follow the programme level order of the guide
-	
-	
-	
-	order D_Infrastructure D_Materials D_Salary D_training D_Training_Children D_community D_Strengthening_District D_Strengthening_National D_piloting D_other
-	ds D_*
-		
-	foreach var in `r(varlist)' {
-		
-		// create name of the new varable with prefix Outcome_
-		local newvar =  "Activity_"+ subinstr("`var'", "D_","",.)
-		
-		//convert original variabe from text to number
-		destring `var', gen(`newvar')
-		drop `var'
-		
-		//divide new variable to 100
-		replace `newvar' = round(`newvar'/100, .00)
-		format `newvar' %3.2f
-		label var `newvar' "Proportion of spending in `newvar'"
-		
-	}
 
-	
-	
-	
-	//Check that the outcomes add to 100
-	ds Activity_*
-	egen sum_activity = rowtotal(`r(varlist)')
-	format sum_activity %3.2f
-	label var sum_activity "QA to check that the sum of the Activities is 100"
-	
 	
 * the total spending in years 0-2 that is on RHC and specific to the ERP, on ACTIVITY TYPES
 	
 	//list all outcome variables
 	ds Activity_*
-	local seq = 1
 		
+	// define prefix of activities	
+	#delimit ;
+local prefix
+   "IN
+   MA
+   TS
+   TT
+   CH
+   CO
+   DS
+   NS
+   PI
+   AO"
+
+     ;
+#delimit cr
+
+
+
+	
+	
+	local seq = 1
 	foreach var in `r(varlist)' {
 		
 	
 		 
 		//name of new var
-		local newvar = "Spend_RHC_3Ys_ERPspec_"+ "Act_" + "`seq'"
+		*"Spend_RHC_3Ys_ERPspec_"+ "Act_" + "`seq'"
+		local newvar = "Spend_RHC_3Ys_ERPspec_"+  word("`prefix'", `seq')
+		di word("`prefix'", `seq')
+		di "`newvar'"
 		
 		// name for label of variable
 		local a_off =  subinstr("`var'", "Activity_", "",.)
 		
+		di "`a_off'"
 		
 		//generate variable
 		 gen `newvar' = Spend_RHC_3Ys_ERPspec * `var'
@@ -424,17 +545,65 @@
 
 
 
+	
 					*-DETAILS OF ERP SPECIFIC GEOGRAPHICAL LEVEL
 *------------------------------------------------------------------------------
 
 *Total spend over years 0-2 on RHC and ERP specific activities, at the national level
-	gen Spend_RHC_3Ys_ERPspec_Nat = Spend_RHC_3Ys_ERPspec * Spendprop_Nat_all
+	gen Spend_RHC_3Ys_ERPspec_Nat = Spend_RHC_3Ys_ERPspec * Spendprop_Nat_all / Spendprop_RHC_all
 	label var Spend_RHC_3Ys_ERPspec_Nat "Total spend over years 0-2 on RHC and ERP specific activities, at the national level"
 
 *Total spend over years 0-2 on RHC and ERP specific activities, at the district level
-	gen Spend_RHC_3Ys_ERPspec_Dist = Spend_RHC_3Ys_ERPspec * Spendprop_Distlevel_all
+	gen Spend_RHC_3Ys_ERPspec_Dist = Spend_RHC_3Ys_ERPspec * Spendprop_Distlevel_all /Spendprop_RHC_all
 	label var Spend_RHC_3Ys_ERPspec_Dist "Total spend over years 0-2 on RHC and ERP specific activities, at the district level"
 
+
+	
+	
+*-----------------BY DISTRICT-------------------------------------------------
+
+*Spend_RHC_3Ys_ERPspec *Districts_RHC/districts_number
+	
+		
+	
+	#delimit ;
+local distritos
+   "Yumbe
+   Obongi
+   Madi
+   Lamwo 
+	Kyegegwa 
+	Koboko 
+	Kiryandongo 
+	Kikuube
+	Kamwenge
+	Kampala 
+	Isingiro 
+	Arua 
+	Adjumani"
+     ;
+#delimit cr
+	
+	
+	
+	
+	
+	foreach v of local distritos {
+		
+		di "`v'"
+		local newvar =  "Spnd_RHC_3Ys_ERPspec_" + `"`v'"'
+		*di "`newvar'"
+		gen `newvar' = 0
+		
+		replace `newvar' = Spend_RHC_3Ys_ERPspec_Dist * Districts_RHC if strpos(districts_which, "`v'")
+		
+		label var `newvar' "total spend in `v' over years 0-2 on RHC and ERP specific activities"	 
+		
+		
+	
+	}
+	
+ 
 
 * 			FORMAT VARIABLES
 *-------------------------------------------------------------------------------
@@ -448,10 +617,12 @@
 	order Project pr_budget pr_budget_currency pr_total_spent pr_spending_currency ///
 	budget_USD spent_USD execution_rate date_start date_up_todate date_end Months monthly_spend_all ///
 	active_* spent_* spent_3ys_all ///
-	Districts_RHC districts_number perc_subcounties Spendprop_Distlevel_all ///
+	Districts_RHC districts_number perc_subcounties Prop_district_school_level Spendprop_Distlevel_all ///
 	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp Spend_RHC_3Ys_ERPspec ///
-	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes Spend_RHC_3Ys_ERPspec_* ///
-	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_*
+	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes_* Spend_RHC_3Ys_ERPspec_* Spnd_RHC_3Ys_ERPspec_* ///
+	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_* ///
+	donor_*
+	
 	
 *-------------------------------------------------------------------------------
 
