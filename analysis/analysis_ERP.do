@@ -15,6 +15,7 @@
 	global dir_downloads = "$dir_project/downloads"
 	global dir_reference  = "$dir_project/reference_data"
 	global dir_clean =  "$dir_project/clean_data"
+	global dir_dashboard = "$dir_project/dashboard"
 	
 	
 	
@@ -614,7 +615,11 @@ local distritos
 	format *_prop %3.2f
 	
 *Variables created : ----------------------------------------------------------
-	order Project pr_budget pr_budget_currency pr_total_spent pr_spending_currency ///
+	
+	
+	#delimit ;
+local keep_vars
+   ID Project pr_budget pr_budget_currency pr_total_spent pr_spending_currency ///
 	budget_USD spent_USD execution_rate date_start date_up_todate date_end Months monthly_spend_all ///
 	active_* spent_* spent_3ys_all ///
 	Districts_RHC districts_number perc_subcounties Prop_district_school_level Spendprop_Distlevel_all ///
@@ -622,6 +627,14 @@ local distritos
 	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes_* Spend_RHC_3Ys_ERPspec_* Spnd_RHC_3Ys_ERPspec_* ///
 	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_* ///
 	donor_*
+     ;
+#delimit cr
+	
+	
+	
+	keep `keep_vars'
+	order `keep_vars'
+	
 	
 	
 *-------------------------------------------------------------------------------
@@ -630,5 +643,46 @@ local distritos
 *** EXPORT DATA
 *-------------------------------------------------------------------------------
 	export excel using "$dir_clean\ERP_projects.xlsx", firstrow(variables) replace
-	ex
+	
+
+*** EXPORT DATA FOR DASHBOARD
+*------------------------------------------------------------------------------
+	
+	*drop non-key variables for analysis
+	drop pr_total_spent pr_budget donor_category* *currency
+	
+
+	*rename variables to make them shorter	
+	rename Spnd_RHC_3Ys_ERPspec_Kiryandongo Spnd_RHC_3Ys_ERPspec_Kiryan
+	rename Activity_Strengthening_District Activity_Strengthening_Dist
+	rename Activity_Strengthening_National Activity_Strengthening_Nat
+	
+	
+	
+	*identify variables that wont be reshaped
+	ds ID donor_* date_start date_end Project, not 
+	
+	
+
+	** rename variables to create "stub" and be able to seshape
+	foreach var in `r(varlist)' {
+	
+		di "`var'"
+		rename `var'  i_`var'
+	}
+	
+	
+	
+	
+	
+	*reshape and save
+	reshape long i_, i(ID) j(Indicator) string	
+	rename i_ value
+	
+	export excel using "$dir_dashboard\ERP_projects.xlsx", firstrow(variables) replace
+	
+	
+	
+	
+	
 
