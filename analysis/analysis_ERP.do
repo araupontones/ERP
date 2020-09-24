@@ -222,6 +222,7 @@
 	replace budget_USD =  pr_budget / `ex_gbp' if pr_budget_currency == "GBP"
 	replace budget_USD =  pr_budget / `ex_euro' if pr_budget_currency == "EURO"
 	replace budget_USD =  pr_budget / `ex_ugx' if pr_budget_currency == "Ugandan shilling"
+	label var budget_USD "Total budget for the duration of the project into USD"
 
 *Amoung spent in USD
 	gen spent_USD = .
@@ -230,7 +231,7 @@
 	replace spent_USD =  pr_total_spent / `ex_euro' if pr_spending_currency == "EURO"
 	replace spent_USD =  pr_total_spent / `ex_ugx' if pr_spending_currency == "Ugandan shilling"
 	
-	label var spent_USD "Total budget for the duration of the project into USD"
+	label var spent_USD "Total spending for the duration of the project into USD"
 	
 	format budget_USD spent_USD %22.1f
 *Execution rate
@@ -501,7 +502,7 @@
 		
 	// define prefix of activities	
 	#delimit ;
-local prefix
+local prefix_activities
    "IN
    MA
    TS
@@ -517,18 +518,14 @@ local prefix
 #delimit cr
 
 
-
-	
 	
 	local seq = 1
 	foreach var in `r(varlist)' {
-		
-	
 		 
 		//name of new var
-		*"Spend_RHC_3Ys_ERPspec_"+ "Act_" + "`seq'"
-		local newvar = "Spend_RHC_3Ys_ERPspec_"+  word("`prefix'", `seq')
-		di word("`prefix'", `seq')
+		local newvar = "Spend_RHC_3Ys_ERPspec_"+  word("`prefix_activities'", `seq')
+		*di word("`prefix_activities'", `seq')
+		di "`var'"
 		di "`newvar'"
 		
 		// name for label of variable
@@ -651,35 +648,258 @@ local keep_vars
 	*drop non-key variables for analysis
 	drop pr_total_spent pr_budget donor_category* *currency
 	
-
-	*rename variables to make them shorter	
-	rename Spnd_RHC_3Ys_ERPspec_Kiryandongo Spnd_RHC_3Ys_ERPspec_Kiryan
-	rename Activity_Strengthening_District Activity_Strengthening_Dist
-	rename Activity_Strengthening_National Activity_Strengthening_Nat
+	
+	* identify values that are unique at the project level
+	
+	#delimit ;
+local single_values
+   budget_USD execution_rate  date_start date_end Month monthly_spend_all ///
+	 active_* Districts_RHC districts_number perc_subcounties Prop_district_school_level ///
+	 A_erp Spendprop_Distlevel_all Spendprop_Nat_all Spendprop_RHC_all Outcome_* Programme_* ///
+	 Activity_* donor_* date_up_todate erp_relevant_prop sum_*
+     ;
+#delimit cr
+	
+	 
+	 
+	 * Export table of Projects to be used in the dashboard
+	 preserve	 
+	 
+	 keep ID Project `single_values'
+	 
+	 export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")
+	 
+	 
+	 restore
+	 
+	 
+	 
+	 drop `single_values' Project
 	
 	
 	
-	*identify variables that wont be reshaped
-	ds ID donor_* date_start date_end Project, not 
+	
+** RESHAPE DATA FOR EFFECTIVE VISUALIZATION
+*-------------------------------------------------------------------------------
+	
+	*rename long variables of spending in specific district
+	*(THIS IS BECAUSE THE NAME OF THE DISTRICT SPECIFIC SPENDING WAS TO LONG)
 	
 	
-
-	** rename variables to create "stub" and be able to seshape
+	ds Spnd_RHC_3Ys_ERPspec_*
+	
 	foreach var in `r(varlist)' {
 	
-		di "`var'"
-		rename `var'  i_`var'
+	local new_name =  subinstr("`var'", "RHC_3Ys_ERPspec_", "", . )
+	rename `var' `new_name'	
+	
+	}
+	
+	
+
+	*Reshape from wide to long by ID
+	
+	reshape long spent_ Spend_RHC_ Spnd_, i(ID) j(prefix) string
+	order ID spent_ Spend_RHC_  Spnd_ prefix 
+	
+	
+	** AREA OF SPENDING (ALL, SPECIFIC, RELATED)
+	gen area = ""
+	replace area = "All areas" if strpos(prefix, "all") | strpos(prefix, "USD")
+	replace area = "ERP specific" if strpos(prefix, "ERPspec")
+	replace area = "ERP related" if strpos(prefix, "ERPrel")
+	
+	foreach d in `distritos' {
+	
+		replace area = "ERP specific" if prefix  == "`d'"
+	
 	}
 	
 	
 	
+	**FINANCIAL YEAR (2017, 2018, 2019, 3FYS, TOTAL)
+	gen financial_year = ""
+	
+	replace financial_year = "2017" if strpos(prefix,"0_all")
+	replace financial_year = "2018" if strpos(prefix, "1_all")
+	replace financial_year = "2019" if strpos(prefix,"2_all")
+	replace financial_year = "3 FYs" if strpos(prefix,"3ys_all") | strpos(prefix,"3Ys")
+	replace financial_year = "Total" if strpos(prefix,"USD") // TOTAL SPENDING INDEPENDENTLY OF THE FINANCIAL YEARS
 	
 	
-	*reshape and save
-	reshape long i_, i(ID) j(Indicator) string	
-	rename i_ value
+	foreach d in `distritos' {
 	
-	export excel using "$dir_dashboard\ERP_projects.xlsx", firstrow(variables) replace
+		replace financial_year = "3 FYs" if prefix  == "`d'"
+	
+	}
+	
+	
+	**LEVEL OF SPENDING (Programme, Outcome,  Activity, District_level)
+	
+	gen level = ""
+	replace level = "Programme" if inlist(prefix, "3Ys_ERPrel", "3Ys_ERPspec", "USD") 
+	
+	
+	foreach d in `distritos' {
+	
+		replace level = "District level" if prefix  == "`d'"
+	
+	}
+	
+	
+	* Identify programme level activities and categorize them as such
+	#delimit ;
+local prefix_programe
+   "all
+   Dist
+   Nat
+   ECD
+   Accele
+   Primar
+   second
+   Skills
+   System
+   other"
+     ;
+#delimit cr
+
+	
+	foreach pre in `prefix_programe' {
+		
+		local catch = "_" + "`pre'"
+		replace level = "Programme" if strpos(prefix, "`catch'")
+		
+		
+	
+	}
+	
+	
+	
+	*Identify spending at the outcome level
+	replace level = "Outcome" if strpos(prefix, "01") | strpos(prefix, "02") | strpos(prefix, "03") |strpos(prefix, "04")
+	
+	
+	
+	
+	*identify activities (prefix activities is define above)
+	foreach pre in `prefix_activities' {
+		
+		local catch = "_" + "`pre'"
+		replace level = "Activity" if strpos(prefix, "`catch'")
+		
+		
+	
+	}
+	
+	
+
+	*DIMENSIONS (THE EXACT DIMENSION IN WHICH THE SPENDING WAS ALLOCATED TO)
+
+	
+	*Identify text to correctly label the dimensions
+#delimit ;
+local look_for
+   "01
+   02
+   03
+   04
+   ECD
+   Primar
+   second
+   Accele
+   Skills
+   System
+   other
+   Dist
+   Nat
+   _IN
+   _MA
+   _TS
+   _TT
+   _CH
+   _CO
+   _DS
+   _NS
+   _PI
+   _AO
+   "
+     ;
+#delimit cr
+
+
+ * define the dimensions
+#delimit ;
+local return_this
+   "Outcome_1
+   Outcome_2
+   Outcome_3
+   Outcome_4
+   ECD
+   Primary
+   Secondary
+   Accelerated_education
+   Skills_and_vocational_training
+   System_strengthening
+   Other   
+   District_ALL
+   National
+   Infrastructure
+   Materials
+   Teacher_Salary
+   Teacher_training
+   Training_to_the_children
+   Strengthening_communities
+   System_strengthening_(District) 
+   System_strengthening_(National) 
+   Piloting/innovations
+   Other   
+   "
+     ;
+#delimit cr
+
+
+	
+	
+	*create dimensions
+	gen dimension = ""
+	
+	
+	local seq = 1 
+	foreach lk in `look_for' {
+	
+		replace dimension = word("`return_this'", `seq') if strpos(prefix, word("`look_for'", `seq'))
+		
+		local seq = `seq' + 1
+	
+	}
+	
+	
+		foreach d in `distritos' {
+	
+		replace dimension = prefix if prefix  == "`d'"
+	
+	}
+	
+	
+	*get rid of the under score for dimension
+	replace dimension = subinstr(dimension, "_"," ", .)
+	
+	
+	
+	order ID Spend_RHC_ spent_ Spnd_ prefix area financial_year level dimension
+	
+	
+	
+	*name spend
+	replace Spend_RHC_ = spent_ if Spend_RHC == .
+	replace Spend_RHC_ = Spnd_ if Spend_RHC == .
+	rename Spend_RHC Spend
+	drop spent_ Spnd_ prefix
+	
+	
+	
+	
+	export excel using "$dir_dashboard\spending.xlsx", firstrow(variables) replace sheet("Spending")
 	
 	
 	
