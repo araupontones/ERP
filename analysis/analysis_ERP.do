@@ -894,12 +894,12 @@ local return_this
 	replace Spend_RHC_ = spent_ if Spend_RHC == .
 	replace Spend_RHC_ = Spnd_ if Spend_RHC == .
 	rename Spend_RHC Spend
-	drop spent_ Spnd_ prefix
+	drop spent_ Spnd_ 
 	
 	
 	
 	
-	export excel using "$dir_dashboard\spending.xlsx", firstrow(variables) replace sheet("Spending")
+	*export excel using "$dir_dashboard\spending.xlsx", firstrow(variables) replace sheet("Spending")
 	
 	
 	
