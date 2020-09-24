@@ -655,8 +655,8 @@ local keep_vars
 local single_values
    budget_USD execution_rate  date_start date_end Month monthly_spend_all ///
 	 active_* Districts_RHC districts_number perc_subcounties Prop_district_school_level ///
-	 A_erp Spendprop_Distlevel_all Spendprop_Nat_all Spendprop_RHC_all Outcome_* Programme_* ///
-	 Activity_* donor_* date_up_todate erp_relevant_prop sum_*
+	 A_erp Spendprop_Distlevel_all Spendprop_Nat_all Spendprop_RHC_all ///
+	 donor_* date_up_todate erp_relevant_prop sum_*
      ;
 #delimit cr
 	
@@ -674,7 +674,7 @@ local single_values
 	 
 	 
 	 
-	 drop `single_values' Project
+	 drop `single_values' Project Activity_* Outcome_* Programme_*
 	
 	
 	
@@ -899,7 +899,7 @@ local return_this
 	
 	
 	
-	*export excel using "$dir_dashboard\spending.xlsx", firstrow(variables) replace sheet("Spending")
+	export excel using "$dir_dashboard\spending.xlsx", firstrow(variables) replace sheet("Spending")
 	
 	
 	
