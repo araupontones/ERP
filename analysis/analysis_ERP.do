@@ -18,9 +18,9 @@
 	global dir_dashboard = "$dir_project/dashboard"
 	
 	
-	
-** Read reference data of donors and implementors
 
+** Read reference data of donors and implementors
+*---------------------------------------------------------------------------------------------
 	import excel "$dir_reference/list_donors_categories.xlsx", sheet("Sheet1") firstrow clear
 	
 	keep Donor Category
@@ -66,6 +66,59 @@
 	tempfile clean_donors
 	save `clean_donors', replace
 	
+
+* Load and clean reference data from implementors -----------------------------
+
+	import excel "$dir_reference/list_implementors_categories.xlsx", sheet("Sheet1") firstrow clear
+	keep Implementor Category
+	rename Category implementor_category
+	
+	*save file to merge it with the roster of donors
+	tempfile ref_implementors
+	save `ref_implementors', replace
+	
+	import excel "$dir_downloads/Roster_implementors1.xls", sheet("Sheet1") firstrow clear
+	
+	drop if Implementor == ""
+	
+	keep Implementor ID 
+	
+	*merge with reference data of implementors
+	merge  m:1 Implementor using `ref_implementors', assert(3) nogen
+	
+	
+	keep ID Implementor implementor_*
+	bys ID: gen seq = _n
+	order ID seq
+	
+	
+	** reshape to have only one row by project (so we can merge with the project's data)
+	reshape wide Implementor implementor_*, i(ID) j(seq)
+	br
+	
+	ds implementor_category*
+	
+	*Describe which type of funding the project is receivingS
+	gen Category = ""
+	foreach var in `r(varlist)' {
+	
+
+		di "`var'"
+		replace Category = Category + `var' if Category == ""
+		replace Category = Category + ", " + `var' if `var' !="" & Category !="" & !strpos(Category, `var')
+	}
+	
+	
+	**Keep only donor_category and create summary
+	keep ID implementor_category*
+	
+	
+	gen implementor_summary = implementor_category1
+	replace implementor_summary = "Combination" if implementor_category2 !=""
+	
+	tempfile clean_implementors
+	save `clean_implementors', replace
+	
 	
 	
 	
@@ -88,12 +141,19 @@
 	
 	import excel "$dir_downloads/Project_spending.xls", sheet("Sheet1") firstrow clear
 	
+	*Keep only approved reports
+	keep if for_analysis != "No"
 	
-	*merge with data from donors
-	merge 1:m ID using `clean_donors', assert(1 3) nogen
+	
+	*merge with data from donors (We are keeping 1 to 3 to drop non-approved reports)
+	merge 1:m ID using `clean_donors', keep(1 3) nogen
+	
+	*merge with data from implementors
+	merge 1:m ID using `clean_implementors', keep(1 3) nogen
 	
 	
-
+	
+	
 	
 ** CLEAN OUTCOMES, PROGRAMMES, AND ACTIVITIES 
 **------------------------------------------------------------------------------
@@ -563,22 +623,28 @@ local prefix_activities
 *Spend_RHC_3Ys_ERPspec *Districts_RHC/districts_number
 	
 		
+		replace districts_which = subinstr(districts_which, "Arua (aside from Madi Okollo)", "Arua",.)
+		replace districts_which = subinstr(districts_which, "Kikuube (formerly part of Hoima)", "Kikuube",.)
+		replace districts_which = subinstr(districts_which, "Madi Okollo (formerly part of Arua)", "Madi Okollo",.)
+		replace districts_which = subinstr(districts_which, "Obongi (formerly part of Moyo)", "Obongi",.)
+				
+		
 	
 	#delimit ;
 local distritos
-   "Yumbe
-   Obongi
+   "Adjumani
+   Arua
+   Isingiro
+   Kampala
+   Kamwenge
+   Kikuube
+   Kiryandongo
+   Koboko
+   Kyegegwa
+   Lamwo
    Madi
-   Lamwo 
-	Kyegegwa 
-	Koboko 
-	Kiryandongo 
-	Kikuube
-	Kamwenge
-	Kampala 
-	Isingiro 
-	Arua 
-	Adjumani"
+   Obongi
+   Yumbe"
      ;
 #delimit cr
 	
@@ -593,15 +659,16 @@ local distritos
 		*di "`newvar'"
 		gen `newvar' = 0
 		
-		replace `newvar' = Spend_RHC_3Ys_ERPspec_Dist * Districts_RHC if strpos(districts_which, "`v'")
+		replace `newvar' = Spend_RHC_3Ys_ERPspec_Dist / Districts_RHC if strpos(districts_which, "`v'")
 		
-		label var `newvar' "total spend in `v' over years 0-2 on RHC and ERP specific activities"	 
-		
+		label var `newvar' "total spend in `v' over years 0-2 on RHC and ERP specific activities"		
 		
 	
 	}
 	
- 
+	
+	
+	 
 
 * 			FORMAT VARIABLES
 *-------------------------------------------------------------------------------
@@ -623,7 +690,7 @@ local keep_vars
 	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp Spend_RHC_3Ys_ERPspec ///
 	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes_* Spend_RHC_3Ys_ERPspec_* Spnd_RHC_3Ys_ERPspec_* ///
 	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_* ///
-	donor_*
+	donor_* implementor_*
      ;
 #delimit cr
 	
@@ -632,7 +699,7 @@ local keep_vars
 	keep `keep_vars'
 	order `keep_vars'
 	
-	
+
 	
 *-------------------------------------------------------------------------------
 
@@ -649,32 +716,45 @@ local keep_vars
 	drop pr_total_spent pr_budget donor_category* *currency
 	
 	
-	* identify values that are unique at the project level
+	* identify values that are unique at the project level and rename 
+	
+	rename Spend_RHC_3Ys_ERPspec_Dist District_spend
+	rename Spend_RHC_3Ys_ERPspec_Nat National_spend
+	
+	rename Spend_RHC_3Ys_ERPrel relevant_spend //ERP relevant spending in the 3fy
+	rename Spend_RHC_3Ys_ERPspec specific_spend //ERP relevant spending in the 3fy
+	
+	rename spent_3ys_all total_ERP_3Y // total spending in years 0-2
+	rename Spend_RHC_3Ys_all total_RHC_3Y // total RHC
+	
+	rename spent_USD USD_spent // total spend since project started 
+	
+	
 	
 	#delimit ;
 local single_values
    budget_USD execution_rate  date_start date_end Month monthly_spend_all ///
 	 active_* Districts_RHC districts_number perc_subcounties Prop_district_school_level ///
 	 A_erp Spendprop_Distlevel_all Spendprop_Nat_all Spendprop_RHC_all ///
-	 donor_* date_up_todate erp_relevant_prop sum_*
+	date_up_todate erp_relevant_prop sum_* *_summary District_spend National_spend ///
+	relevant_spend specific_spend total_ERP_3Y total_RHC_3Y USD_spent
      ;
 #delimit cr
 	
-	 
 	 
 	 * Export table of Projects to be used in the dashboard
 	 preserve	 
 	 
 	 keep ID Project `single_values'
-	 
-	 export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")
-	 
+	 	 
+	 export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")	 
 	 
 	 restore
 	 
 	 
+	 * drop variables that arent needed for the indicator table
 	 
-	 drop `single_values' Project Activity_* Outcome_* Programme_*
+	 drop `single_values' Project Activity_* Outcome_* Programme_* implementor_*
 	
 	
 	
@@ -750,8 +830,7 @@ local single_values
 	* Identify programme level activities and categorize them as such
 	#delimit ;
 local prefix_programe
-   "all
-   Dist
+   "Dist
    Nat
    ECD
    Accele
