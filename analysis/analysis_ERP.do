@@ -9,13 +9,11 @@
 		global dir_project = "C:/repositaries/1.work/ERP"
 	}
 
-
 	
-	*Directory where data from zoho is downloaded to:
-	global dir_downloads = "$dir_project/downloads"
-	global dir_reference  = "$dir_project/reference_data"
-	global dir_clean =  "$dir_project/clean_data"
-	global dir_dashboard = "$dir_project/dashboard"
+	*Run the paths and globals of the project
+	do "$dir_project/analysis/set_up.do"
+	
+	
 	
 	
 
@@ -23,9 +21,10 @@
 *---------------------------------------------------------------------------------------------
 	import excel "$dir_reference/list_donors_categories.xlsx", sheet("Sheet1") firstrow clear
 	
+
 	keep Donor Category
 	rename Category donor_category
-
+	
 	*save file to merge it with the roster of donors
 	tempfile ref_donors
 	save `ref_donors', replace
@@ -35,9 +34,12 @@
 	*merge with reference data of donors
 	merge  m:1 Donor using `ref_donors', assert(3) nogen
 	
+	
+
 	keep ID Donor donor_*
 	bys ID: gen seq = _n
 	order ID seq
+	
 	
 	** reshape to have only one row by project (so we can merge with the project's data)
 	reshape wide Donor donor_*, i(ID) j(seq)
@@ -56,12 +58,11 @@
 	}
 	
 	
+	
 	**Keep only donor_category and create summary
 	keep ID donor_category*
 	gen donor_summary = donor_category1
 	replace donor_summary = "Combination" if donor_category2 !=""
-
-	
 	
 	tempfile clean_donors
 	save `clean_donors', replace
@@ -94,8 +95,7 @@
 	
 	** reshape to have only one row by project (so we can merge with the project's data)
 	reshape wide Implementor implementor_*, i(ID) j(seq)
-	br
-	
+		
 	ds implementor_category*
 	
 	*Describe which type of funding the project is receivingS
@@ -195,8 +195,6 @@
 	
 
 	
-** Proportion spent by programme
-
 
 *Clean variables of programme level spending
 	
@@ -713,7 +711,26 @@ local keep_vars
 *------------------------------------------------------------------------------
 	
 	*drop non-key variables for analysis
-	drop pr_total_spent pr_budget donor_category* *currency
+	rename implementor_summary summary_implementor
+	drop pr_total_spent pr_budget donor_category* *currency Outcome_* sum_* Activity_* implementor_* Programme_*
+	
+	
+	* identify variables thar are unique at the project level
+	local single_vars Project budget_USD spent_USD execution_rate date_start ///
+	date_up_todate date_end Months monthly_spend_all Districts_RHC districts_number ///
+	perc_subcounties Prop_district_school_level Spendprop_Distlevel_all ///
+	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp ///
+	Spend_RHC_3Ys_ERPspec erp_relevant_prop Spend_RHC_3Ys_ERPrel ///
+	Spend_RHC_3Ys_ERPspec_Nat Spend_RHC_3Ys_ERPspec_Dist donor_summary spent_3ys_all ///
+	active_* summary_implementor
+	
+	
+	*1) table for projects with variables that are unique at the project level
+	
+	preserve
+	
+	keep `single_vars' ID
+	
 	
 	
 	* identify values that are unique at the project level and rename 
@@ -729,35 +746,20 @@ local keep_vars
 	
 	rename spent_USD USD_spent // total spend since project started 
 	
-	
-	
-	#delimit ;
-local single_values
-   budget_USD execution_rate  date_start date_end Month monthly_spend_all ///
-	 active_* Districts_RHC districts_number perc_subcounties Prop_district_school_level ///
-	 A_erp Spendprop_Distlevel_all Spendprop_Nat_all Spendprop_RHC_all ///
-	date_up_todate erp_relevant_prop sum_* *_summary District_spend National_spend ///
-	relevant_spend specific_spend total_ERP_3Y total_RHC_3Y USD_spent
-     ;
-#delimit cr
-	
-	 
-	 * Export table of Projects to be used in the dashboard
-	 preserve	 
-	 
-	 keep ID Project `single_values'
-	 	 
-	 export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")	 
+	gen link =	 "https://app.zohocreator.eu/erp.forms20/erp/#Form:Projects?recLinkID=" + ID +"&viewLinkName=Project_spending"
+	export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")	
+		 
+	  
 	 
 	 restore
 	 
 	 
 	 * drop variables that arent needed for the indicator table
 	 
-	 drop `single_values' Project Activity_* Outcome_* Programme_* implementor_*
+	 drop `single_vars' 
 	
 	
-	
+
 	
 ** RESHAPE DATA FOR EFFECTIVE VISUALIZATION
 *-------------------------------------------------------------------------------
@@ -770,17 +772,17 @@ local single_values
 	
 	foreach var in `r(varlist)' {
 	
+	*drop the redundacy of the variable name of the districts spending 
 	local new_name =  subinstr("`var'", "RHC_3Ys_ERPspec_", "", . )
 	rename `var' `new_name'	
 	
 	}
 	
 	
-
-	*Reshape from wide to long by ID
-	
+	*Reshape from wide to long by ID	
 	reshape long spent_ Spend_RHC_ Spnd_, i(ID) j(prefix) string
 	order ID spent_ Spend_RHC_  Spnd_ prefix 
+	
 	
 	
 	** AREA OF SPENDING (ALL, SPECIFIC, RELATED)
@@ -789,6 +791,8 @@ local single_values
 	replace area = "ERP specific" if strpos(prefix, "ERPspec")
 	replace area = "ERP related" if strpos(prefix, "ERPrel")
 	
+	
+	** take ERP specific as the area of the districts 
 	foreach d in `distritos' {
 	
 		replace area = "ERP specific" if prefix  == "`d'"
@@ -807,6 +811,7 @@ local single_values
 	replace financial_year = "Total" if strpos(prefix,"USD") // TOTAL SPENDING INDEPENDENTLY OF THE FINANCIAL YEARS
 	
 	
+	*the spending for districts is for the years 0-2
 	foreach d in `distritos' {
 	
 		replace financial_year = "3 FYs" if prefix  == "`d'"
@@ -814,150 +819,32 @@ local single_values
 	}
 	
 	
-	**LEVEL OF SPENDING (Programme, Outcome,  Activity, District_level)
+	*LEVEL AND DIMENSION OF SPENDING (globals are creted in set_up.do)	
+	
 	
 	gen level = ""
-	replace level = "Programme" if inlist(prefix, "3Ys_ERPrel", "3Ys_ERPspec", "USD") 
-	
-	
-	foreach d in `distritos' {
-	
-		replace level = "District level" if prefix  == "`d'"
-	
-	}
-	
-	
-	* Identify programme level activities and categorize them as such
-	#delimit ;
-local prefix_programe
-   "Dist
-   Nat
-   ECD
-   Accele
-   Primar
-   second
-   Skills
-   System
-   other"
-     ;
-#delimit cr
-
-	
-	foreach pre in `prefix_programe' {
-		
-		local catch = "_" + "`pre'"
-		replace level = "Programme" if strpos(prefix, "`catch'")
-		
-		
-	
-	}
-	
-	
-	
-	*Identify spending at the outcome level
-	replace level = "Outcome" if strpos(prefix, "01") | strpos(prefix, "02") | strpos(prefix, "03") |strpos(prefix, "04")
-	
-	
-	
-	
-	*identify activities (prefix activities is define above)
-	foreach pre in `prefix_activities' {
-		
-		local catch = "_" + "`pre'"
-		replace level = "Activity" if strpos(prefix, "`catch'")
-		
-		
-	
-	}
-	
-	
-
-	*DIMENSIONS (THE EXACT DIMENSION IN WHICH THE SPENDING WAS ALLOCATED TO)
-
-	
-	*Identify text to correctly label the dimensions
-#delimit ;
-local look_for
-   "01
-   02
-   03
-   04
-   ECD
-   Primar
-   second
-   Accele
-   Skills
-   System
-   other
-   Dist
-   Nat
-   _IN
-   _MA
-   _TS
-   _TT
-   _CH
-   _CO
-   _DS
-   _NS
-   _PI
-   _AO
-   "
-     ;
-#delimit cr
-
-
- * define the dimensions
-#delimit ;
-local return_this
-   "Outcome_1
-   Outcome_2
-   Outcome_3
-   Outcome_4
-   ECD
-   Primary
-   Secondary
-   Accelerated_education
-   Skills_and_vocational_training
-   System_strengthening
-   Other   
-   District_ALL
-   National
-   Infrastructure
-   Materials
-   Teacher_Salary
-   Teacher_training
-   Training_to_the_children
-   Strengthening_communities
-   System_strengthening_(District) 
-   System_strengthening_(National) 
-   Piloting/innovations
-   Other   
-   "
-     ;
-#delimit cr
-
-
-	
-	
-	*create dimensions
 	gen dimension = ""
-	
-	
-	local seq = 1 
-	foreach lk in `look_for' {
-	
-		replace dimension = word("`return_this'", `seq') if strpos(prefix, word("`look_for'", `seq'))
 		
-		local seq = `seq' + 1
 	
+	*these globals are defined in the set_up.do 
+ foreach y in $programme_dictionary $outcome_dictionary $activity_dictionary_projects{
+	di "`y'"
+	replace level = word("`y'",3) if strpos(prefix, word("`y'",1))
+	replace dimension = word("`y'",2) if strpos(prefix, word("`y'",1))
+	
+ } 
+	
+	
+	
+	*District level area and dimensions
+	foreach d in $distritos {
+	
+		replace level = "District level" if strpos(prefix,"`d'")
+		replace dimension = "`d'" if strpos(prefix, "`d'")
 	}
 	
-	
-		foreach d in `distritos' {
-	
-		replace dimension = prefix if prefix  == "`d'"
-	
-	}
+
+
 	
 	
 	*get rid of the under score for dimension
@@ -970,15 +857,18 @@ local return_this
 	
 	
 	*name spend
+	
 	replace Spend_RHC_ = spent_ if Spend_RHC == .
 	replace Spend_RHC_ = Spnd_ if Spend_RHC == .
+	drop if Spend_RHC_ == .
 	rename Spend_RHC Spend
-	drop spent_ Spnd_ 
+	drop spent_ Spnd_ prefix
+	sort ID area level dimension
 	
 	
 	
 	
-	export excel using "$dir_dashboard\spending.xlsx", firstrow(variables) replace sheet("Spending")
+	export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) sheetreplace sheet("Spending")
 	
 	
 	
