@@ -15,7 +15,7 @@ copy_files = map(dirs_to_copy, function(x){
   #folder to share with externals
   to_dir_external = file.path(dir_db_external, x)
   
-  file.copy(from_dir, to_dir, recursive=TRUE, overwrite = T)
+  #file.copy(from_dir, to_dir, recursive=TRUE, overwrite = T)
   file.copy(from_dir, to_dir_external, recursive=TRUE, overwrite = T)
   
 })
