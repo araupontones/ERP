@@ -126,10 +126,10 @@
 *------------------------------------------------------------------------------
 	
 	*Exchange rates into USD: average for the years we are looking at
-	*https://www.fiscal.treasury.gov/reports-statements/treasury-reporting-rates-exchange/historical.html December 
-	local ex_gbp = 0.7580
-	local ex_euro = 0.890
-	local ex_ugx = 3660
+	*https://www.fiscal.treasury.gov/reports-statements/treasury-reporting-rates-exchange/historical.html June 2019 
+	local ex_gbp = 0.788
+	local ex_euro = 0.879
+	local ex_ugx = 3690
 	
 	
 
@@ -525,8 +525,8 @@
 * the total spending in years 0-2 that is on RHC and specific to the ERP, on Programme levels
 	
 	//list all outcome variables
-	ds Programme_*
-		
+	ds Programme_* 
+	
 	foreach var in `r(varlist)' {
 		
 		
@@ -544,7 +544,6 @@
 	
 	
 	}
-
 
 
  
@@ -646,6 +645,7 @@ local distritos
      ;
 #delimit cr
 	
+
 	
 	
 	
@@ -664,9 +664,25 @@ local distritos
 	
 	}
 	
+
+
+**ERP specific spending by year
+	format A_erp %3.2f
+	
+
+	
+	gen Spend_RHC_Y0_ERPspec = spent_0_all *  Spendprop_RHC_all * A_erp
+	gen Spend_RHC_Y1_ERPspec = spent_1_all *  Spendprop_RHC_all * A_erp
+	gen Spend_RHC_Y2_ERPspec = spent_2_all *  Spendprop_RHC_all * A_erp
+	
+	*gen AQ_RHC_FY = (Spend_RHC_Y0_ERPspec + Spend_RHC_Y1_ERPspec + Spend_RHC_Y2_ERPspec) - Spend_RHC_3Ys_ERPspec
+	
+	egen QA_RHC_FY = rowtotal(Spend_RHC_Y*) 
+	replace QA_RHC_FY = round(QA_RHC_FY - Spend_RHC_3Ys_ERPspec, 2)
+	
+
 	
 	
-	 
 
 * 			FORMAT VARIABLES
 *-------------------------------------------------------------------------------
@@ -686,7 +702,8 @@ local keep_vars
 	active_* spent_* spent_3ys_all ///
 	Districts_RHC districts_number perc_subcounties Prop_district_school_level Spendprop_Distlevel_all ///
 	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp Spend_RHC_3Ys_ERPspec ///
-	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes_* Spend_RHC_3Ys_ERPspec_* Spnd_RHC_3Ys_ERPspec_* ///
+	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes_* Spend_RHC_3Ys_ERPspec_* Spend_RHC_Y*_ERPspec ///
+	Spnd_RHC_3Ys_ERPspec_* ///
 	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_* ///
 	donor_* implementor_*
      ;
@@ -696,6 +713,8 @@ local keep_vars
 	
 	keep `keep_vars'
 	order `keep_vars'
+	
+	
 	
 
 	
@@ -784,7 +803,6 @@ local keep_vars
 	order ID spent_ Spend_RHC_  Spnd_ prefix 
 	
 	
-	
 	** AREA OF SPENDING (ALL, SPECIFIC, RELATED)
 	gen area = ""
 	replace area = "All areas" if strpos(prefix, "all") | strpos(prefix, "USD")
@@ -804,9 +822,9 @@ local keep_vars
 	**FINANCIAL YEAR (2017, 2018, 2019, 3FYS, TOTAL)
 	gen financial_year = ""
 	
-	replace financial_year = "2017" if strpos(prefix,"0_all")
-	replace financial_year = "2018" if strpos(prefix, "1_all")
-	replace financial_year = "2019" if strpos(prefix,"2_all")
+	replace financial_year = "2017" if strpos(prefix,"0_all") | strpos(prefix, "Y0")
+	replace financial_year = "2018" if strpos(prefix, "1_all") | strpos(prefix, "Y1")
+	replace financial_year = "2019" if strpos(prefix,"2_all") | strpos(prefix, "Y2")
 	replace financial_year = "3 FYs" if strpos(prefix,"3ys_all") | strpos(prefix,"3Ys")
 	replace financial_year = "Total" if strpos(prefix,"USD") // TOTAL SPENDING INDEPENDENTLY OF THE FINANCIAL YEARS
 	
@@ -863,7 +881,7 @@ local keep_vars
 	drop if Spend_RHC_ == .
 	rename Spend_RHC Spend
 	drop spent_ Spnd_ prefix
-	sort ID area level dimension
+	sort ID area financial_year 
 	
 	
 	
