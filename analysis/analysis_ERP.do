@@ -116,6 +116,10 @@
 	gen implementor_summary = implementor_category1
 	replace implementor_summary = "Combination" if implementor_category2 !=""
 	
+	
+	br implementor_summary *_category*
+	
+	
 	tempfile clean_implementors
 	save `clean_implementors', replace
 	

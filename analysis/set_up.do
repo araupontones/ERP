@@ -71,19 +71,29 @@ global outcome_dictionary
 
 
 
+   
+   
+   
+   
+   
+   
+   
+   
+   
+
 *global to look for activity level dimensions   
  #delimit ;
  global activity_dictionary
- `" "Act_1 Infrastructure Activity"
- "Act_2 Materials Activity" 
- "Act_3 Teacher_Salary Activity"
- "Act_4 Teacher_training Activity"
- "Act_5 Training_to_the_children Activity"
- "Act_6 Strengthening_communities Activity"
- "Act_7 System_strengthening_(District) Activity"
- "Act_8 System_strengthening_(National) Activity"
- "Act_9 Piloting/innovations Activity"
- "Act_10 Other Activity"
+ `" "IN Infrastructure Activity"
+ "MA Materials Activity" 
+ "TS Teacher_Salary Activity"
+ "TT Teacher_training Activity"
+ "CH Training_to_the_children Activity"
+ "CO Strengthening_communities Activity"
+ "DS System_strengthening_(District) Activity"
+ "NS System_strengthening_(National) Activity"
+ "PI Piloting/innovations Activity"
+ "AO Other Activity"
  
  "'
  ;

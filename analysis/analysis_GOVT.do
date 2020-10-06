@@ -15,7 +15,7 @@
 	
 ** Read Government data
 *---------------------------------------------------------------------------------------------
-	import excel "$dir_downloads/Copy of 1. Capitation by school 2017-20.xlsx", sheet("GovtERPspend") firstrow clear
+	import excel "$dir_downloads/1. ERP government budgets 2017-20.xlsx", sheet("GovtERPspend") firstrow clear
 	
 	
 * RENAME VARIABLES 
@@ -40,7 +40,22 @@
 	drop if inlist(District, "", "Total")
 	
 	
+	rename implementer_summary implementor_summary
+	
+	*transform all variables in numeric (so merging with projects data is possible)
+	ds Spend* Spnd*
+	
+	foreach var in `r(varlist)' {
+	
+		destring `var', replace
+		
+	}
+	
+	
+	*export to clean data
+	export excel using "$dir_clean\ERP_government.xlsx", firstrow(variables) replace sheet("GOVTProjects")	 
 
+	ex
 *EXPORT TO DASHBOARD
 *------------------------------------------------------------------------------
 
@@ -50,7 +65,7 @@
 	
 		#delimit ;
 			local single_values
-			Spend_RHC_3Ys_ERPspec Spend_RHC_3Ys_ERPspec_Nat Spend_RHC_3Ys_ERPspec_Dist
+			Spend_RHC_3Ys_ERPspec Spend_RHC_3Ys_ERPspec_Nat Spend_RHC_3Ys_ERPspec_Dist donor_summary implementer_summary
 		;
 	#delimit cr
 
@@ -58,7 +73,7 @@
 	
 	keep District Project `single_values'
 	
-	rename Spend_RHC_3Ys_ERPspec  ERP_specific_3Y
+	rename Spend_RHC_3Ys_ERPspec ERP_specific_3Y
 	rename Spend_RHC_3Ys_ERPspec_Nat ERP_spec_Nat_3y
 	rename Spend_RHC_3Ys_ERPspec_Dist ERP_spec_Dist_3y
 	
@@ -89,6 +104,7 @@
 	rename `var' `new_name'	
 	
 	}
+	
 	
 	* reshape long
 	sort District Project
@@ -130,6 +146,7 @@
 	
 	
 	
+	
 	*get rid of the under score for dimension
 	replace dimension = subinstr(dimension, "_"," ", .)
 	
@@ -142,6 +159,7 @@
 	replace Spend = substr(Spend, 1,  strpos(Spend,".")-1)
 	replace Spend = "0" if Spend ==""
 		
+	
 	export excel using "$dir_dashboard\Government.xlsx", firstrow(variables)  sheetreplace sheet("GovtSpending")
 	
 	
