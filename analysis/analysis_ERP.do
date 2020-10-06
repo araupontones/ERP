@@ -721,7 +721,7 @@ local keep_vars
 	
 	
 
-	
+	gen link =	 "https://app.zohocreator.eu/erp.forms20/erp/#Form:Projects?recLinkID=" + ID +"&viewLinkName=Project_spending"
 *-------------------------------------------------------------------------------
 
 	
@@ -729,7 +729,7 @@ local keep_vars
 *-------------------------------------------------------------------------------
 	export excel using "$dir_clean\ERP_projects.xlsx", firstrow(variables) replace
 	
-
+ex
 *** EXPORT DATA FOR DASHBOARD
 *------------------------------------------------------------------------------
 	
@@ -745,7 +745,7 @@ local keep_vars
 	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp ///
 	Spend_RHC_3Ys_ERPspec erp_relevant_prop Spend_RHC_3Ys_ERPrel ///
 	Spend_RHC_3Ys_ERPspec_Nat Spend_RHC_3Ys_ERPspec_Dist donor_summary spent_3ys_all ///
-	active_* summary_implementor
+	active_* summary_implementor 
 	
 	
 	*1) table for projects with variables that are unique at the project level

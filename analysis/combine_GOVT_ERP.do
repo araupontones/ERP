@@ -63,7 +63,7 @@
 	
 	*1) table for projects with variables that are unique at the project level
 	
-
+	
 	preserve
 	
 	keep `single_values' ID
