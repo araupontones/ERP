@@ -14,12 +14,15 @@
 	do "$dir_project/analysis/set_up.do"
 	
 	
+	import excel "$dir_downloads/Project_spending.xls", sheet("Sheet1") firstrow clear
+	tempfile projects
+	save `projects', replace
 	
 	
 
 ** Read reference data of donors and implementors
 *---------------------------------------------------------------------------------------------
-	import excel "$dir_reference/list_donors_categories.xlsx", sheet("Sheet1") firstrow clear
+	import excel "$dir_reference/list_donors_categories.xlsx", sheet("Sheet 1") firstrow clear
 	
 
 	keep Donor Category
@@ -64,13 +67,14 @@
 	gen donor_summary = donor_category1
 	replace donor_summary = "Combination" if donor_category2 !=""
 	
+	
 	tempfile clean_donors
 	save `clean_donors', replace
 	
 
 * Load and clean reference data from implementors -----------------------------
 
-	import excel "$dir_reference/list_implementors_categories.xlsx", sheet("Sheet1") firstrow clear
+	import excel "$dir_reference/list_implementors_categories.xlsx", sheet("Sheet 1") firstrow clear
 	keep Implementor Category
 	rename Category implementor_category
 	
@@ -80,12 +84,19 @@
 	
 	import excel "$dir_downloads/Roster_implementors1.xls", sheet("Sheet1") firstrow clear
 	
+	*use organisation as implementor if implementor is missing
+	merge m:1 ID using `projects', keepusing(ID Organisation) assert(3 2)
+	replace Implementor = Organisation if _merge == 2
+	
 	drop if Implementor == ""
+	replace Implementor = strtrim(Implementor)
 	
 	keep Implementor ID 
 	
 	*merge with reference data of implementors
-	merge  m:1 Implementor using `ref_implementors', assert(3) nogen
+	merge  m:1 Implementor using `ref_implementors', assert(2 3) keep(3)
+
+	*, assert(3) nogen
 	
 	
 	keep ID Implementor implementor_*
@@ -119,7 +130,6 @@
 	
 	br implementor_summary *_category*
 	
-	
 	tempfile clean_implementors
 	save `clean_implementors', replace
 	
@@ -149,14 +159,15 @@
 	keep if for_analysis != "No"
 	
 	
+	
+	
 	*merge with data from donors (We are keeping 1 to 3 to drop non-approved reports)
 	merge 1:m ID using `clean_donors', keep(1 3) nogen
 	
 	*merge with data from implementors
 	merge 1:m ID using `clean_implementors', keep(1 3) nogen
 	
-	
-	
+
 	
 	
 ** CLEAN OUTCOMES, PROGRAMMES, AND ACTIVITIES 
@@ -393,7 +404,8 @@
 
 	
 *Amount spent in years 0-2 of the ERP
-
+	
+	
 	egen spent_3ys_all = rowtotal(spent_0_all spent_1_all spent_2_all)
 	label var spent_3ys_all "Total spending in years 0-2 of ERP"
 	format spent_* %22.1f
@@ -461,6 +473,7 @@
 * total spending in years 0-2 that is on RHC, but not necessarily specific to the ERP
 	
 	gen Spend_RHC_3Ys_all = spent_3ys_all * Spendprop_RHC_all
+	
 	label var Spend_RHC_3Ys_all "total spending in years 0-2 that is on RHC, but not necessarily specific to the ERP"
 	
 
@@ -470,6 +483,8 @@
 	label var A_erp "Proportion of spending which is ERP specific"
 	
 	gen Spend_RHC_3Ys_ERPspec =	round(Spend_RHC_3Ys_all * A_erp,.01)
+	
+
 	label var Spend_RHC_3Ys_ERPspec "Total spending in years 0-2 that is on RHC and specific to ERP"
 
 
@@ -728,172 +743,3 @@ local keep_vars
 *** EXPORT DATA
 *-------------------------------------------------------------------------------
 	export excel using "$dir_clean\ERP_projects.xlsx", firstrow(variables) replace
-	
-ex
-*** EXPORT DATA FOR DASHBOARD
-*------------------------------------------------------------------------------
-	
-	*drop non-key variables for analysis
-	rename implementor_summary summary_implementor
-	drop pr_total_spent pr_budget donor_category* *currency Outcome_* sum_* Activity_* implementor_* Programme_*
-	
-	
-	* identify variables thar are unique at the project level
-	local single_vars Project budget_USD spent_USD execution_rate date_start ///
-	date_up_todate date_end Months monthly_spend_all Districts_RHC districts_number ///
-	perc_subcounties Prop_district_school_level Spendprop_Distlevel_all ///
-	Spendprop_Nat_all Spendprop_RHC_all Spend_RHC_3Ys_all A_erp ///
-	Spend_RHC_3Ys_ERPspec erp_relevant_prop Spend_RHC_3Ys_ERPrel ///
-	Spend_RHC_3Ys_ERPspec_Nat Spend_RHC_3Ys_ERPspec_Dist donor_summary spent_3ys_all ///
-	active_* summary_implementor 
-	
-	
-	*1) table for projects with variables that are unique at the project level
-	
-	preserve
-	
-	keep `single_vars' ID
-	
-	
-	
-	* identify values that are unique at the project level and rename 
-	
-	rename Spend_RHC_3Ys_ERPspec_Dist District_spend
-	rename Spend_RHC_3Ys_ERPspec_Nat National_spend
-	
-	rename Spend_RHC_3Ys_ERPrel relevant_spend //ERP relevant spending in the 3fy
-	rename Spend_RHC_3Ys_ERPspec specific_spend //ERP relevant spending in the 3fy
-	
-	rename spent_3ys_all total_ERP_3Y // total spending in years 0-2
-	rename Spend_RHC_3Ys_all total_RHC_3Y // total RHC
-	
-	rename spent_USD USD_spent // total spend since project started 
-	
-	gen link =	 "https://app.zohocreator.eu/erp.forms20/erp/#Form:Projects?recLinkID=" + ID +"&viewLinkName=Project_spending"
-	export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")	
-		 
-	  
-	 
-	 restore
-	 
-	 
-	 * drop variables that arent needed for the indicator table
-	 
-	 drop `single_vars' 
-	
-	
-
-	
-** RESHAPE DATA FOR EFFECTIVE VISUALIZATION
-*-------------------------------------------------------------------------------
-	
-	*rename long variables of spending in specific district
-	*(THIS IS BECAUSE THE NAME OF THE DISTRICT SPECIFIC SPENDING WAS TO LONG)
-	
-	
-	ds Spnd_RHC_3Ys_ERPspec_*
-	
-	foreach var in `r(varlist)' {
-	
-	*drop the redundacy of the variable name of the districts spending 
-	local new_name =  subinstr("`var'", "RHC_3Ys_ERPspec_", "", . )
-	rename `var' `new_name'	
-	
-	}
-	
-	
-	*Reshape from wide to long by ID	
-	reshape long spent_ Spend_RHC_ Spnd_, i(ID) j(prefix) string
-	order ID spent_ Spend_RHC_  Spnd_ prefix 
-	
-	
-	** AREA OF SPENDING (ALL, SPECIFIC, RELATED)
-	gen area = ""
-	replace area = "All areas" if strpos(prefix, "all") | strpos(prefix, "USD")
-	replace area = "ERP specific" if strpos(prefix, "ERPspec")
-	replace area = "ERP related" if strpos(prefix, "ERPrel")
-	
-	
-	** take ERP specific as the area of the districts 
-	foreach d in `distritos' {
-	
-		replace area = "ERP specific" if prefix  == "`d'"
-	
-	}
-	
-	
-	
-	**FINANCIAL YEAR (2017, 2018, 2019, 3FYS, TOTAL)
-	gen financial_year = ""
-	
-	replace financial_year = "2017" if strpos(prefix,"0_all") | strpos(prefix, "Y0")
-	replace financial_year = "2018" if strpos(prefix, "1_all") | strpos(prefix, "Y1")
-	replace financial_year = "2019" if strpos(prefix,"2_all") | strpos(prefix, "Y2")
-	replace financial_year = "3 FYs" if strpos(prefix,"3ys_all") | strpos(prefix,"3Ys")
-	replace financial_year = "Total" if strpos(prefix,"USD") // TOTAL SPENDING INDEPENDENTLY OF THE FINANCIAL YEARS
-	
-	
-	*the spending for districts is for the years 0-2
-	foreach d in `distritos' {
-	
-		replace financial_year = "3 FYs" if prefix  == "`d'"
-	
-	}
-	
-	
-	*LEVEL AND DIMENSION OF SPENDING (globals are creted in set_up.do)	
-	
-	
-	gen level = ""
-	gen dimension = ""
-		
-	
-	*these globals are defined in the set_up.do 
- foreach y in $programme_dictionary $outcome_dictionary $activity_dictionary_projects{
-	di "`y'"
-	replace level = word("`y'",3) if strpos(prefix, word("`y'",1))
-	replace dimension = word("`y'",2) if strpos(prefix, word("`y'",1))
-	
- } 
-	
-	
-	
-	*District level area and dimensions
-	foreach d in $distritos {
-	
-		replace level = "District level" if strpos(prefix,"`d'")
-		replace dimension = "`d'" if strpos(prefix, "`d'")
-	}
-	
-
-
-	
-	
-	*get rid of the under score for dimension
-	replace dimension = subinstr(dimension, "_"," ", .)
-	
-	
-	
-	order ID Spend_RHC_ spent_ Spnd_ prefix area financial_year level dimension
-	
-	
-	
-	*name spend
-	
-	replace Spend_RHC_ = spent_ if Spend_RHC == .
-	replace Spend_RHC_ = Spnd_ if Spend_RHC == .
-	drop if Spend_RHC_ == .
-	rename Spend_RHC Spend
-	drop spent_ Spnd_ prefix
-	sort ID area financial_year 
-	
-	
-	
-	
-	export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) sheetreplace sheet("Spending")
-	
-	
-	
-	
-	
-

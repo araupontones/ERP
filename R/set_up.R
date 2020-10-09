@@ -11,4 +11,5 @@ dir_db_external = "C:/Users/andre/Dropbox/ERP FinTrack Analysis"
 
 dir_downloads = "downloads"
 dir_clean = "clean_data"
+dir_reference = "reference_data"
 

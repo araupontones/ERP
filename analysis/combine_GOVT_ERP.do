@@ -87,6 +87,9 @@
 	*rename spent_USD USD_spent // total spend since project started 
 	
 	drop total_*
+	
+	gen last_update = "Last update: $S_DATE"
+	
 	export excel using "$dir_dashboard\Projects.xlsx", firstrow(variables) replace sheet("Projects")
 	
 	restore
