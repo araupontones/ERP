@@ -33,9 +33,10 @@
 	save `ref_donors', replace
 	
 	import excel "$dir_downloads/Roster_donors2.xls", sheet("Sheet1") firstrow clear
+	replace Donor = strtrim(Donor)
 	
 	*merge with reference data of donors
-	merge  m:1 Donor using `ref_donors', assert(3) nogen
+	merge  m:1 Donor using `ref_donors' , assert(3) nogen
 	
 	
 
@@ -94,9 +95,8 @@
 	keep Implementor ID 
 	
 	*merge with reference data of implementors
-	merge  m:1 Implementor using `ref_implementors', assert(2 3) keep(3)
-
-	*, assert(3) nogen
+	merge  m:1 Implementor using `ref_implementors' , assert(2 3) keep(3)
+	
 	
 	
 	keep ID Implementor implementor_*
@@ -128,7 +128,7 @@
 	replace implementor_summary = "Combination" if implementor_category2 !=""
 	
 	
-	br implementor_summary *_category*
+	*br implementor_summary *_category*
 	
 	tempfile clean_implementors
 	save `clean_implementors', replace
