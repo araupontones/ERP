@@ -64,7 +64,7 @@
 	local single_values  Spend_RHC_3Ys_all ///
 	Spend_RHC_3Ys_ERPspec erp_relevant_prop Spend_RHC_3Ys_ERPrel ///
 	Spend_RHC_3Ys_ERPspec_Nat Spend_RHC_3Ys_ERPspec_Dist donor_summary spent_3ys_all ///
-	summary_implementor link 
+	summary_implementor link Organisation
 	
 	
 	*1) table for projects with variables that are unique at the project level

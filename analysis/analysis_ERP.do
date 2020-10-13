@@ -24,7 +24,7 @@
 *---------------------------------------------------------------------------------------------
 	import excel "$dir_reference/list_donors_categories.xlsx", sheet("Sheet 1") firstrow clear
 	
-
+	
 	keep Donor Category
 	rename Category donor_category
 	
@@ -51,22 +51,38 @@
 	
 	ds donor_category*
 	
+	
 	*Describe which type of funding the project is receivingS
 	gen Category = ""
-	foreach var in `r(varlist)' {
 	
+	gen combination = 0
+	local seq = 2
+	foreach var in `r(varlist)' {
 		
+		
+	
 		di "`var'"
 		replace Category = Category + `var' if Category == ""
 		replace Category = Category + ", " + `var' if `var' !="" & Category !="" & !strpos(Category, `var')
+		
+		*Check combination (if more than one donor type
+		
+		cap replace combination = combination + 1 if regexm(Category, donor_category`seq') == 0 & `var' != "" 
+		
+		
+	
+	local seq = `seq'+1
+		
 	}
 	
-	
+
 	
 	**Keep only donor_category and create summary
-	keep ID donor_category*
+	keep ID donor_category*  combination
 	gen donor_summary = donor_category1
-	replace donor_summary = "Combination" if donor_category2 !=""
+	replace donor_summary = "Combination" if combination > 0 // combination if there's a mix of funding
+	drop combination
+
 	
 	
 	tempfile clean_donors
@@ -111,22 +127,31 @@
 	
 	*Describe which type of funding the project is receivingS
 	gen Category = ""
+	gen combination = 0
+	local seq = 2
 	foreach var in `r(varlist)' {
 	
 
 		di "`var'"
 		replace Category = Category + `var' if Category == ""
 		replace Category = Category + ", " + `var' if `var' !="" & Category !="" & !strpos(Category, `var')
+		
+		*Check combination (if more than one donor type
+		
+		cap replace combination = combination + 1 if regexm(Category, implementor_category`seq') == 0 & `var' != "" 
+		
+		local seq = `seq' + 1
 	}
 	
 	
 	**Keep only donor_category and create summary
-	keep ID implementor_category*
+	
+	keep ID implementor_category* Category combination
 	
 	
 	gen implementor_summary = implementor_category1
-	replace implementor_summary = "Combination" if implementor_category2 !=""
-	
+	replace implementor_summary = "Combination" if combination > 0
+	drop combination
 	
 	*br implementor_summary *_category*
 	
@@ -724,7 +749,7 @@ local keep_vars
 	erp_relevant_prop Spend_RHC_3Ys_ERPrel Outcome_* sum_outcomes_* Spend_RHC_3Ys_ERPspec_* Spend_RHC_Y*_ERPspec ///
 	Spnd_RHC_3Ys_ERPspec_* ///
 	Programme_* sum_programme Activity_* sum_activity Spend_RHC_3Ys_ERPspec_* ///
-	donor_* implementor_*
+	donor_* implementor_* Organisation
      ;
 #delimit cr
 	

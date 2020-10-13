@@ -13,11 +13,12 @@ token  = "65a7ca968a59099101894c48755e00d1"
 scope = "creatorapi"
 
 #reports to download
-reports = c("Project_spending", "Roster_donors2",
-            "roster_donors_second","Roster_implementors1",
-            "Roster_implementors_second")
+reports = c("Project_spending", 
+            "Roster_donors2",
+            "Roster_implementors1"
+)
 
-
+#"roster_donors_second",  "Roster_implementors_second"
 
 
 #Function to get the data ======================================================================================================

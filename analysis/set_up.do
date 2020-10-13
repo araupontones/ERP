@@ -60,9 +60,9 @@ global programme_dictionary
 *global to look for outcome level dimensions
 #delimit ;
 global outcome_dictionary
-`" "01 Outcome_1 Outcome"
-"02 Outcome_2 Outcome"
-"03 Outcome_3 Outcome"
+`" "01 Access Outcome"
+"02 Quality Outcome"
+"03 System_Strengthening  Outcome"
 "04 Outcome_4 Outcome"
 
 "'
