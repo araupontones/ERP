@@ -4,9 +4,12 @@
 *-------------------------------------------------------------------------------
 	
 	*Main directory of the project (this may change by analyst)
-	
 	if c(username) == "andre" {
 		global dir_project = "C:/repositaries/1.work/ERP"
+	}
+	
+	if c(username) == "Nicola" {
+		global dir_project = "C:\Users\nicola\Dropbox\ERP FinTrack Analysis"
 	}
 
 	
